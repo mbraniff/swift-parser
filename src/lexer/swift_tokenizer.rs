@@ -3,8 +3,9 @@ use std::{collections::HashMap, fs::{File, OpenOptions}, io::{self, Read, SeekFr
 use sha2::{Digest, Sha256};
 use base64::engine::{general_purpose, Engine as _};
 
-use crate::{token::Token, tokenizer};
+use super::{token::Token, tokenizer};
 
+// Tokenizer that can be configured to cache tokens for files based on file hashes
 pub struct Tokenizer {
     use_cache: bool,
     cache_file: Option<File>,
@@ -67,6 +68,7 @@ impl Tokenizer {
         if let Some(cached_tokens) = self.cached_tokens_for(file_path)? {
             return Ok(cached_tokens);
         }
+        println!("Have to read file");
         let (file_hash, tokens) = tokenize(file_path)?;
         self.cache_if_needed(file_path, file_hash, &tokens)?;
         Ok(tokens)
@@ -128,7 +130,6 @@ impl Drop for Tokenizer {
 }
 
 fn tokenize(file: &Path) -> io::Result<(String, Vec<Token>)> {
-    println!("File name: {:?}", &file.to_str());
     let mut file = File::open(file)?;
     let mut hasher = Sha256::new();
 
@@ -142,7 +143,6 @@ fn tokenize(file: &Path) -> io::Result<(String, Vec<Token>)> {
     file.read_to_end(&mut file_data)?;
     let file_content = String::from_utf8(file_data)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-    println!("{:?}", &file_content);
 
     let tokens = tokenizer::tokenize(&file_content);
     Ok((hash, tokens))

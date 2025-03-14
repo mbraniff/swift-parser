@@ -67,9 +67,10 @@ pub fn string_to_token(symbol: &str) -> &TokenKind {
     &TokenKind::IDENTIFIER
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Copy, Hash)]
+#[repr(u64)]
 pub enum TokenKind {
-    LAZY,
+    LAZY = 1,
     UNOWNED,
     WEAK,
     VAR,

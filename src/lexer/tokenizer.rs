@@ -1,5 +1,5 @@
 use regex::Regex;
-use crate::token::{string_to_token, Token, TokenKind};
+use super::token::{string_to_token, Token, TokenKind};
 
 macro_rules! token_pattern {
     ($pattern:expr, $kind:expr, $value:expr) => {
