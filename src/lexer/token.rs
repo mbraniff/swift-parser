@@ -48,6 +48,7 @@ static RESERVED_TOKENS: phf::Map<&'static str, TokenKind> = phf_map! {
     "in" => TokenKind::IN,
     "where" => TokenKind::WHERE,
     "any" => TokenKind::ANY,
+    "some" => TokenKind::SOME,
     "as" => TokenKind::AS,
     "is" => TokenKind::IS,
     "nil" => TokenKind::NIL,
@@ -65,6 +66,13 @@ pub fn string_to_token(symbol: &str) -> &TokenKind {
         return token;
     }
     &TokenKind::IDENTIFIER
+}
+
+pub fn token_can_be_name(token: &Token) -> bool {
+    if RESERVED_TOKENS.contains_key(&token.value) {
+        return true;
+    }
+    return token.kind == TokenKind::IDENTIFIER;
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Copy, Hash)]
@@ -125,6 +133,7 @@ pub enum TokenKind {
     IN,
     WHERE,
     ANY,
+    SOME,
     AS,
     IS,
 
@@ -174,9 +183,11 @@ pub enum TokenKind {
     STRING,
     NUMBER,
     EOF,
+
+    ANYTHING, // A * character to be used to match to alpha reserved types
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
     pub value: String

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{Mutex, MutexGuard, OnceLock}};
 
-use crate::{ast::{expressions::{parse_primary_expr, Expr}, statements::{parse_var_decl_stmt, Stmt}}, lexer::token::TokenKind};
+use crate::{ast::{expressions::{parse_primary_expr, Expr}, statements::{parse_prefix_stmt, parse_var_decl_stmt, Stmt}}, lexer::token::TokenKind};
 use super::parser::Parser;
 
 type StmtHandler = fn (p: &mut Parser) -> Stmt;
@@ -25,7 +25,7 @@ static STMT_LU: OnceLock<Mutex<HashMap<TokenKind, StmtHandler>>> = OnceLock::new
 static BP_LU: OnceLock<Mutex<HashMap<TokenKind, BindingPower>>> = OnceLock::new();
 static LED_LU: OnceLock<Mutex<HashMap<TokenKind, LedHandler>>> = OnceLock::new();
 
-fn get_map<T>(lu: &'static OnceLock<Mutex<T>>) -> Option<MutexGuard<'static, T>> {
+pub fn get_map<T>(lu: &'static OnceLock<Mutex<T>>) -> Option<MutexGuard<'static, T>> {
     lu.get()
         .map(|mutex| mutex.lock().unwrap())
 }
@@ -57,6 +57,15 @@ pub fn register_lookups() {
     nud_reg(TokenKind::NUMBER, PRIMARY, parse_primary_expr);
     nud_reg(TokenKind::STRING, PRIMARY, parse_primary_expr);
     nud_reg(TokenKind::IDENTIFIER, PRIMARY, parse_primary_expr);
+    
+    stmt_reg(TokenKind::PUBLIC,parse_prefix_stmt);
+    stmt_reg(TokenKind::PRIVATE,parse_prefix_stmt);
+    stmt_reg(TokenKind::FILEPRIVATE,parse_prefix_stmt);
+    stmt_reg(TokenKind::LAZY,parse_prefix_stmt);
+    stmt_reg(TokenKind::OPEN,parse_prefix_stmt);
+    stmt_reg(TokenKind::INTERNAL,parse_prefix_stmt);
+    stmt_reg(TokenKind::STATIC,parse_prefix_stmt);
+    stmt_reg(TokenKind::FINAL,parse_prefix_stmt);
 
     stmt_reg(TokenKind::VAR, parse_var_decl_stmt);
     stmt_reg(TokenKind::LET, parse_var_decl_stmt);

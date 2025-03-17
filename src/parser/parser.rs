@@ -1,10 +1,10 @@
 use std::{path::Path, sync::Mutex};
 
-use crate::{ast::{expressions::Expr, statements::Stmt}, lexer::{swift_tokenizer::Tokenizer, token::{Token, TokenKind}}, parser::lookup::{bp, led, nud}};
+use crate::{ast::{expressions::Expr, statements::Stmt}, lexer::{swift_tokenizer::Tokenizer, token::{token_can_be_name, Token, TokenKind}}, parser::lookup::{bp, led, nud}};
 
-use super::lookup::{register_lookups, stmt, BindingPower, DEFAULT_BP};
+use super::{lookup::{register_lookups, stmt, BindingPower, DEFAULT_BP}, types::register_types_lookup};
 
-static lookups_made: Mutex<bool> = Mutex::new(false);
+static LOOKUPS_MADE: Mutex<bool> = Mutex::new(false);
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -29,7 +29,11 @@ impl Parser {
         return token;
     }
 
-    fn has_tokens(&self) -> bool {
+    pub fn go_back(&mut self) {
+        self.pos -= 1;
+    }
+
+    pub fn has_tokens(&self) -> bool {
         (self.pos as usize) < self.tokens.len() && self.current_token().kind != TokenKind::EOF
     }
 
@@ -40,12 +44,33 @@ impl Parser {
     pub fn previous_token(&self) -> &Token {
         &self.tokens[(self.pos - 1) as usize]
     }
+
+    pub fn expect(&mut self, kind: TokenKind) -> Token {
+        let token = self.advance().clone();
+        if token.kind == kind {
+            return token;
+        }
+        panic!("Expected token {:?} but found {:?}", kind, token.kind);
+    }
+
+    pub fn has_pattern(&mut self, pattern: &[TokenKind]) -> bool {
+        for i in 0..pattern.len() {
+            let token = &self.tokens[self.pos as usize + i];
+            if pattern[i] == TokenKind::ANYTHING && token_can_be_name(token) {
+                continue;
+            } else if self.tokens[self.pos as usize + i].kind != pattern[i] {
+                return false;
+            }
+        }
+        true
+    }
 }
 
 pub fn parse(file: &Path, cache: bool) -> Stmt {
-    if !*lookups_made.lock().unwrap() {
-        *lookups_made.lock().unwrap() = true;
+    if !*LOOKUPS_MADE.lock().unwrap() {
+        *LOOKUPS_MADE.lock().unwrap() = true;
         register_lookups();
+        register_types_lookup();
     }
 
     let mut tokenizer: Tokenizer;
@@ -62,10 +87,10 @@ pub fn parse(file: &Path, cache: bool) -> Stmt {
         body.push(Box::new(parse_stmt(&mut parser)));
     }
 
-    Stmt::BlockStmt(body)
+    Stmt::BlockStmt{ body }
 }
 
-fn parse_stmt(p: &mut Parser) -> Stmt {
+pub fn parse_stmt(p: &mut Parser) -> Stmt {
     if let Some(stmt_fn) = stmt(&p.current_token().kind) {
         return (stmt_fn)(p);
     }
@@ -75,10 +100,10 @@ fn parse_stmt(p: &mut Parser) -> Stmt {
 
 fn parse_expr_stmt(p: &mut Parser) -> Stmt {
     let expression = parse_expr(p, DEFAULT_BP);
-    Stmt::ExpressionStmt(Box::new(expression))
+    Stmt::ExpressionStmt{ expression: Box::new(expression) }
 }
 
-fn parse_expr(p: &mut Parser, starting_bp: BindingPower) -> Expr {
+pub fn parse_expr(p: &mut Parser, starting_bp: BindingPower) -> Expr {
     let token_kind = p.current_token().kind;
 
     if let Some(nud) = nud(&token_kind) {

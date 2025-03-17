@@ -1,30 +1,59 @@
-use crate::{lexer::token::{Token, TokenKind}, parser::parser::Parser};
+use serde::Serialize;
 
-#[derive(Debug)]
+use crate::{lexer::token::{Token, TokenKind}, parser::{lookup::UNARY, parser::{parse_expr, Parser}}};
+
+#[derive(Debug, Serialize)]
 pub enum Expr {
     None,
     // Literal Expressions
-    FloatExpr(f64),
-    IntergerExpr(i64),
-    StringExpr(String),
-    SymbolExpr(String),
+    FloatExpr {
+        value: f64,
+    },
+    IntergerExpr {
+        value: i64,
+    },
+    StringExpr {
+        value: String,
+    },
+    SymbolExpr {
+        value: String,
+    },
 
     // Complex Expressions
+    BinaryExpr {
+        left: Box<Expr>,
+        opperator: Token,
+        right: Box<Expr>,
+    },
 
-    /// (Left, Opperator, Right)
-    BinaryExpr(Box<Expr>, Token, Box<Expr>),
-    /// (Opperator, Right)
-    PrefixExpr(Token, Box<Expr>),
-    /// (Member, Property)
-    MemberExpr(Box<Expr>, String),
-    /// (Method, Arguments)
-    CallExpr(Box<Expr>, Vec<Box<Expr>>),
-    /// (Member, Property)
-    ComputedExpr(Box<Expr>, Box<Expr>),
-    /// (Lower, Upper)
-    RangeExpr(Box<Expr>, Box<Expr>),
-    /// (Contents)
-    ArrayLiteralExpr(Vec<Box<Expr>>),
+    PrefixExpr {
+        opperator: Token,
+        right: Box<Expr>,
+    },
+
+    MemberExpr {
+        member: Box<Expr>,
+        property: String,
+    },
+
+    CallExpr {
+        method: Box<Expr>,
+        arguments: Vec<Box<Expr>>,
+    },
+
+    ComputedExpr {
+        member: Box<Expr>,
+        property: Box<Expr>,
+    },
+
+    RangeExpr {
+        lower: Box<Expr>,
+        upper: Box<Expr>,
+    },
+
+    ArrayLiteralExpr {
+        contents: Vec<Box<Expr>>,
+    },
 }
 
 pub fn parse_primary_expr(p: &mut Parser) -> Expr {
@@ -32,21 +61,27 @@ pub fn parse_primary_expr(p: &mut Parser) -> Expr {
         TokenKind::NUMBER => {
             let token = p.advance();
             if let Some(integer) = token.value.parse::<i64>().ok() {
-                return Expr::IntergerExpr(integer);
+                return Expr::IntergerExpr { value: integer };
             }
             if let Some(float) = token.value.parse::<f64>().ok() {
-                return Expr::FloatExpr(float);
+                return Expr::FloatExpr { value: float };
             }
             panic!("Failed to parse number literal from token {:?}", token);
         },
         TokenKind::STRING => {
-            return Expr::StringExpr(p.advance().value.clone());
+            return Expr::StringExpr { value: p.advance().value.clone() };
         },
         TokenKind::IDENTIFIER => {
-            return Expr::SymbolExpr(p.advance().value.clone());
+            return Expr::SymbolExpr { value: p.advance().value.clone() };
         }
         unhandled => {
             panic!("Can not create primary expression from token {:?}", unhandled);
         }
     }
+}
+
+pub fn parse_prefix_expr(p: &mut Parser) -> Expr {
+    let opperator = p.advance().clone();
+    let expr = parse_expr(p, UNARY);
+    Expr::PrefixExpr { opperator, right: Box::new(expr) }
 }

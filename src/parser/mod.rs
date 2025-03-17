@@ -1,2 +1,3 @@
-mod lookup;
+pub mod lookup;
 pub mod parser;
+pub mod types;
