@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::{Mutex, MutexGuard, OnceLock}};
 
 use crate::{ast::{expressions::{parse_primary_expr, Expr}, statements::{parse_prefix_stmt, parse_var_decl_stmt, Stmt}}, lexer::token::TokenKind};
-use super::parser::Parser;
+use super::{expressions::parse_bracket_expr, parser::Parser};
 
 type StmtHandler = fn (p: &mut Parser) -> Stmt;
 type NudHandler = fn (p: &mut Parser) -> Expr;
@@ -48,6 +48,10 @@ fn stmt_reg(kind: TokenKind, stmt_fn: StmtHandler) {
     }
 }
 
+fn led_reg(kind: TokenKind, led_fn: LedHandler) {
+    
+}
+
 pub fn register_lookups() {
     NUD_LU.set(Mutex::new(HashMap::new())).expect("Registered lookups more than once");
     STMT_LU.set(Mutex::new(HashMap::new())).expect("Registered lookups more than once");
@@ -57,6 +61,8 @@ pub fn register_lookups() {
     nud_reg(TokenKind::NUMBER, PRIMARY, parse_primary_expr);
     nud_reg(TokenKind::STRING, PRIMARY, parse_primary_expr);
     nud_reg(TokenKind::IDENTIFIER, PRIMARY, parse_primary_expr);
+    nud_reg(TokenKind::OPEN_BRACKET, PRIMARY, parse_bracket_expr);
+
     
     stmt_reg(TokenKind::PUBLIC,parse_prefix_stmt);
     stmt_reg(TokenKind::PRIVATE,parse_prefix_stmt);

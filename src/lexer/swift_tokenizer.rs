@@ -129,8 +129,8 @@ impl Drop for Tokenizer {
     }
 }
 
-fn tokenize(file: &Path) -> io::Result<(String, Vec<Token>)> {
-    let mut file = File::open(file)?;
+fn tokenize(file_name: &Path) -> io::Result<(String, Vec<Token>)> {
+    let mut file = File::open(file_name)?;
     let mut hasher = Sha256::new();
 
     io::copy(&mut file, &mut hasher)?;
@@ -144,6 +144,6 @@ fn tokenize(file: &Path) -> io::Result<(String, Vec<Token>)> {
     let file_content = String::from_utf8(file_data)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
-    let tokens = tokenizer::tokenize(&file_content);
+    let tokens = tokenizer::tokenize(&file_content, file_name.to_string_lossy().to_string());
     Ok((hash, tokens))
 }

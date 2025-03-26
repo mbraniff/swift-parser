@@ -190,14 +190,20 @@ pub enum TokenKind {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
-    pub value: String
+    pub value: String,
+    pub file: String,
+    pub line: u64,
+    pub col: u64,
 }
 
 impl Token {
-    pub fn new(kind: TokenKind, value: String) -> Token {
+    pub fn new(kind: TokenKind, value: String, file: String, line: u64, col: u64) -> Token {
         Token {
             kind,
             value,
+            file,
+            line,
+            col
         }
     }
 }

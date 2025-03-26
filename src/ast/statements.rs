@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{lexer::token::TokenKind, parser::parser::{parse_stmt, Parser}};
+use crate::{lexer::token::TokenKind, parser::{lookup::ASSIGNMENT, parser::{parse_expr, parse_stmt, Parser}}};
 
 use super::{expressions::Expr, types::{parse_type, Type}};
 
@@ -77,15 +77,38 @@ pub fn parse_var_decl_stmt(p: &mut Parser) -> Stmt {
     let is_constant = start_token == TokenKind::LET;
     let symbol_name = p.advance().value.clone();
 
-    let token = p.advance();
+    let mut token = p.current_token();
     let mut explicit_type = Type::Unknown;
     match token.kind {
         TokenKind::COLON => {
+            p.advance();
             explicit_type = parse_type(p);
         }
         _ => {}
     }
-    return Stmt::VarDeclarationStmt { modifiers: vec![], identifier: symbol_name.clone(), constant: is_constant, assigned_value: Box::new(Expr::None), explicit_type: Box::new(explicit_type) };
+    token = p.current_token();
+    let mut assignment = Expr::None;
+    match token.kind {
+        TokenKind::ASSIGNMENT => {
+            p.advance();
+            assignment = parse_expr(p, ASSIGNMENT);
+        }
+        _ => {}
+    }
+    match explicit_type {
+        Type::Unknown => {
+            match assignment {
+                Expr::FloatExpr{..} => { explicit_type = Type::SymbolType { modifier: None, value: String::from("Double") } },
+                Expr::IntergerExpr{..} => { explicit_type = Type::SymbolType { modifier: None, value: String::from("Int") } },
+                Expr::StringExpr{..} => { explicit_type = Type::SymbolType { modifier: None, value: String::from("String") } },
+                Expr::SymbolExpr{ref value} => { explicit_type = Type::SymbolType { modifier: None, value: value.to_string() } },
+                _ => {}
+            }
+        }
+        _ => {}
+    }
+
+    return Stmt::VarDeclarationStmt { modifiers: vec![], identifier: symbol_name.clone(), constant: is_constant, assigned_value: Box::new(assignment), explicit_type: Box::new(explicit_type) };
 }
 
 pub fn parse_prefix_stmt(p: &mut Parser) -> Stmt {

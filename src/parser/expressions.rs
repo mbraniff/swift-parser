@@ -1,5 +1,8 @@
-use super::parser::Parser;
+use crate::{ast::expressions::Expr, lexer::token::TokenKind};
 
-fn parse_primary_expr(p: &mut Parser) {
-    
+use super::{lookup::PRIMARY, parser::{parse_expr, Parser}};
+
+pub fn parse_bracket_expr(p: &mut Parser) -> Expr {
+    _ = p.expect(TokenKind::OPEN_BRACKET);
+    let mut left = parse_expr(p, PRIMARY)
 }

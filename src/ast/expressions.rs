@@ -57,6 +57,7 @@ pub enum Expr {
 }
 
 pub fn parse_primary_expr(p: &mut Parser) -> Expr {
+    println!("Parsing primary expression: {:?}", p.current_token());
     match p.current_token().kind {
         TokenKind::NUMBER => {
             let token = p.advance();

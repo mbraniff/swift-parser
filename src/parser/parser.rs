@@ -92,7 +92,9 @@ pub fn parse(file: &Path, cache: bool) -> Stmt {
 
 pub fn parse_stmt(p: &mut Parser) -> Stmt {
     if let Some(stmt_fn) = stmt(&p.current_token().kind) {
-        return (stmt_fn)(p);
+        let stmt = (stmt_fn)(p);
+        if p.current_token().kind == TokenKind::SEMI_COLON { p.advance(); }
+        return stmt;
     }
 
     parse_expr_stmt(p)
@@ -100,6 +102,7 @@ pub fn parse_stmt(p: &mut Parser) -> Stmt {
 
 fn parse_expr_stmt(p: &mut Parser) -> Stmt {
     let expression = parse_expr(p, DEFAULT_BP);
+    if p.current_token().kind == TokenKind::SEMI_COLON { p.advance(); }
     Stmt::ExpressionStmt{ expression: Box::new(expression) }
 }
 
@@ -109,7 +112,7 @@ pub fn parse_expr(p: &mut Parser, starting_bp: BindingPower) -> Expr {
     if let Some(nud) = nud(&token_kind) {
         let mut left = (nud)(p);
 
-        while bp(&token_kind).expect("No bp found") > starting_bp {
+        while bp(&token_kind).expect("No bp found") > starting_bp && p.has_tokens() {
             let token_kind = p.current_token().kind;
             if let Some(led_fn) = led(&token_kind) {
                 left = led_fn(p, left, starting_bp);
